@@ -1,0 +1,475 @@
+-- AutoMS Simple v6 — Raka_Voice
+local lp = game:GetService("Players").LocalPlayer
+local VIM = game:GetService("VirtualInputManager")
+local UIS = game:GetService("UserInputService")
+local RS = game:GetService("RunService")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+-- Hapus GUI lama
+pcall(function() lp.PlayerGui:FindFirstChild("AutoMS_Simple"):Destroy() end)
+
+-- ════════════════════════════════════════
+-- FUNGSI UTIL
+-- ════════════════════════════════════════
+local function pressE()
+    VIM:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+    task.wait(0.1)
+    VIM:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+end
+
+local function getItem(names)
+    for _, name in ipairs(names) do
+        local item = lp.Backpack:FindFirstChild(name) or lp.Character:FindFirstChild(name)
+        if item and item:IsA("Tool") then return item end
+    end
+    return nil
+end
+
+local function equip(names)
+    local item = getItem(names)
+    if not item then return false end
+    local hum = lp.Character:FindFirstChildWhichIsA("Humanoid")
+    if hum then hum:EquipTool(item); task.wait(0.5) end
+    return true
+end
+
+-- ════════════════════════════════════════
+-- GUI
+-- ════════════════════════════════════════
+local sg = Instance.new("ScreenGui")
+sg.Name = "AutoMS_Simple"
+sg.ResetOnSpawn = false
+sg.Parent = lp.PlayerGui
+
+local C = {
+    bg    = Color3.fromRGB(5,8,25),
+    bg2   = Color3.fromRGB(10,15,45),
+    blue  = Color3.fromRGB(80,120,255),
+    cyan  = Color3.fromRGB(100,200,255),
+    green = Color3.fromRGB(0,220,80),
+    red   = Color3.fromRGB(255,80,80),
+    purp  = Color3.fromRGB(180,80,255),
+    grey  = Color3.fromRGB(150,150,200),
+    white = Color3.fromRGB(220,220,255),
+}
+
+local win = Instance.new("Frame", sg)
+win.Size = UDim2.new(0,210,0,320)
+win.Position = UDim2.new(0.5,-105,0.5,-160)
+win.BackgroundColor3 = C.bg
+win.BorderSizePixel = 0
+Instance.new("UICorner",win).CornerRadius = UDim.new(0,8)
+local ws = Instance.new("UIStroke",win)
+ws.Color = C.blue; ws.Thickness = 1.5
+
+-- Title bar
+local tbar = Instance.new("Frame",win)
+tbar.Size = UDim2.new(1,0,0,30)
+tbar.BackgroundColor3 = C.bg2; tbar.BorderSizePixel = 0
+Instance.new("UICorner",tbar).CornerRadius = UDim.new(0,8)
+local tfix = Instance.new("Frame",tbar)
+tfix.Size = UDim2.new(1,0,0,8); tfix.Position = UDim2.new(0,0,1,-8)
+tfix.BackgroundColor3 = C.bg2; tfix.BorderSizePixel = 0
+local ttl = Instance.new("TextLabel",tbar)
+ttl.Size = UDim2.new(1,0,1,0); ttl.BackgroundTransparency = 1
+ttl.Text = "🍬 AutoMS Simple v6"; ttl.TextColor3 = C.purp
+ttl.Font = Enum.Font.GothamBold; ttl.TextSize = 13
+
+-- Status label
+local statusLbl = Instance.new("TextLabel",win)
+statusLbl.Size = UDim2.new(1,-16,0,24); statusLbl.Position = UDim2.new(0,8,0,36)
+statusLbl.BackgroundTransparency = 1; statusLbl.Text = "Status: OFF"
+statusLbl.TextColor3 = C.cyan; statusLbl.Font = Enum.Font.Code; statusLbl.TextSize = 12
+statusLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+local function setStatus(txt,r,g,b)
+    statusLbl.Text = txt
+    statusLbl.TextColor3 = Color3.fromRGB(r or 100, g or 200, b or 255)
+end
+
+-- Helper buat bikin tombol
+local function mkBtn(y, txt, col)
+    local btn = Instance.new("TextButton",win)
+    btn.Size = UDim2.new(1,-16,0,26); btn.Position = UDim2.new(0,8,0,y)
+    btn.BackgroundColor3 = col or C.bg2; btn.BorderSizePixel = 0
+    btn.Text = txt; btn.TextColor3 = C.white
+    btn.Font = Enum.Font.GothamBold; btn.TextSize = 12
+    Instance.new("UICorner",btn).CornerRadius = UDim.new(0,6)
+    return btn
+end
+
+-- Drag
+local dragging, dragStart, startPos = false,nil,nil
+tbar.InputBegan:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true; dragStart = inp.Position; startPos = win.Position
+    end
+end)
+UIS.InputChanged:Connect(function(inp)
+    if dragging and inp.UserInputType == Enum.UserInputType.MouseMovement then
+        local d = inp.Position - dragStart
+        win.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+d.X, startPos.Y.Scale, startPos.Y.Offset+d.Y)
+    end
+end)
+UIS.InputEnded:Connect(function(inp)
+    if inp.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+end)
+
+-- ════════════════════════════════════════
+-- 1. AUTO FARM
+-- ════════════════════════════════════════
+local farmRunning = false
+local farmBtn = mkBtn(66, "▶ START Auto Farm", Color3.fromRGB(20,30,80))
+farmBtn.TextColor3 = C.green
+farmBtn.MouseButton1Click:Connect(function()
+    farmRunning = not farmRunning
+    if farmRunning then
+        farmBtn.Text = "⏹ STOP Auto Farm"
+        farmBtn.TextColor3 = C.red
+        task.spawn(function()
+            while farmRunning do
+                setStatus("Equip Air...",100,180,255)
+                equip({"Air","Water"}); pressE()
+                for i=21,1,-1 do
+                    if not farmRunning then break end
+                    setStatus("Masak Air: "..i.."s",0,150,200); task.wait(1)
+                end
+                if not farmRunning then break end
+                setStatus("Equip Tas Gula...",0,200,100)
+                equip({"Tas Gula","Sugar Block Bag"}); task.wait(0.5); pressE(); task.wait(0.5)
+                setStatus("Equip Gelatin...",180,100,255)
+                equip({"Gelatin"}); task.wait(0.5); pressE(); task.wait(0.5)
+                for i=46,1,-1 do
+                    if not farmRunning then break end
+                    setStatus("Masak Gelatin: "..i.."s",150,80,220); task.wait(1)
+                end
+                if not farmRunning then break end
+                setStatus("Equip Tas Kosong...",0,255,100)
+                equip({"Tas Kosong","Empty Bag"}); task.wait(0.5); pressE()
+                setStatus("✓ Siklus selesai!",0,255,100); task.wait(1)
+            end
+            setStatus("Status: OFF",100,100,150)
+        end)
+    else
+        farmBtn.Text = "▶ START Auto Farm"
+        farmBtn.TextColor3 = C.green
+        pcall(function() lp.Character:FindFirstChildWhichIsA("Humanoid"):UnequipTools() end)
+        setStatus("Status: OFF",100,100,150)
+    end
+end)
+
+-- ════════════════════════════════════════
+-- 2. DETECT PLAYER (bukan anti detect — kita yang detect orang)
+-- ════════════════════════════════════════
+local detectOn = false
+local detectConn = nil
+local detectPart = nil
+local detectRadius = 60
+local detectTransp = 1.0
+
+local detectBtn = mkBtn(98, "🔍 Detect Player: OFF", Color3.fromRGB(20,10,50))
+detectBtn.TextColor3 = C.purp
+
+-- Radius slider
+local radLbl = Instance.new("TextLabel",win)
+radLbl.Size = UDim2.new(1,-16,0,14); radLbl.Position = UDim2.new(0,8,0,130)
+radLbl.BackgroundTransparency = 1; radLbl.Text = "Radius: 60 studs"
+radLbl.TextColor3 = C.grey; radLbl.Font = Enum.Font.Code; radLbl.TextSize = 10
+radLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+local radTrack = Instance.new("Frame",win)
+radTrack.Size = UDim2.new(1,-16,0,10); radTrack.Position = UDim2.new(0,8,0,146)
+radTrack.BackgroundColor3 = C.bg2; radTrack.BorderSizePixel = 0
+Instance.new("UICorner",radTrack).CornerRadius = UDim.new(1,0)
+local radFill = Instance.new("Frame",radTrack)
+radFill.Size = UDim2.new(0.3,0,1,0); radFill.BackgroundColor3 = C.blue; radFill.BorderSizePixel = 0
+Instance.new("UICorner",radFill).CornerRadius = UDim.new(1,0)
+
+-- Transparansi slider
+local transpLbl = Instance.new("TextLabel",win)
+transpLbl.Size = UDim2.new(1,-16,0,14); transpLbl.Position = UDim2.new(0,8,0,162)
+transpLbl.BackgroundTransparency = 1; transpLbl.Text = "Part: 100% transparan"
+transpLbl.TextColor3 = C.grey; transpLbl.Font = Enum.Font.Code; transpLbl.TextSize = 10
+transpLbl.TextXAlignment = Enum.TextXAlignment.Left
+
+local transpTrack = Instance.new("Frame",win)
+transpTrack.Size = UDim2.new(1,-16,0,10); transpTrack.Position = UDim2.new(0,8,0,178)
+transpTrack.BackgroundColor3 = C.bg2; transpTrack.BorderSizePixel = 0
+Instance.new("UICorner",transpTrack).CornerRadius = UDim.new(1,0)
+local transpFill = Instance.new("Frame",transpTrack)
+transpFill.Size = UDim2.new(1,0,1,0); transpFill.BackgroundColor3 = C.purp; transpFill.BorderSizePixel = 0
+Instance.new("UICorner",transpFill).CornerRadius = UDim.new(1,0)
+
+-- Slider logic
+local function makeSlider(track, fill, minV, maxV, defaultV, onChange)
+    local sliding = false
+    local function update(x)
+        local rel = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
+        local val = math.floor(minV + (maxV - minV) * rel)
+        fill.Size = UDim2.new(rel, 0, 1, 0)
+        onChange(val, rel)
+    end
+    track.InputBegan:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 then
+            sliding = true; update(inp.Position.X)
+        end
+    end)
+    UIS.InputChanged:Connect(function(inp)
+        if sliding and inp.UserInputType == Enum.UserInputType.MouseMovement then
+            update(inp.Position.X)
+        end
+    end)
+    UIS.InputEnded:Connect(function(inp)
+        if inp.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
+    end)
+    -- Set default
+    local rel = (defaultV - minV) / (maxV - minV)
+    fill.Size = UDim2.new(rel, 0, 1, 0)
+end
+
+makeSlider(radTrack, radFill, 10, 200, 60, function(v)
+    detectRadius = v
+    radLbl.Text = "Radius: " .. v .. " studs"
+    if detectPart then detectPart.Size = Vector3.new(v/15, v/10, v/15) end
+end)
+
+makeSlider(transpTrack, transpFill, 0, 100, 100, function(v)
+    detectTransp = v / 100
+    transpLbl.Text = "Part: " .. v .. "% transparan"
+    if detectPart then detectPart.Transparency = detectTransp end
+end)
+
+detectBtn.MouseButton1Click:Connect(function()
+    detectOn = not detectOn
+    if detectOn then
+        detectBtn.Text = "🔍 Detect Player: ON"
+        detectBtn.TextColor3 = C.green
+        pcall(function()
+            local hrp = lp.Character:FindFirstChild("HumanoidRootPart")
+            detectPart = Instance.new("Part")
+            detectPart.Size = Vector3.new(detectRadius/15, detectRadius/10, detectRadius/15)
+            detectPart.Anchored = true
+            detectPart.CanCollide = false
+            detectPart.CanTouch = false
+            detectPart.CanQuery = false
+            detectPart.Transparency = detectTransp
+            detectPart.BrickColor = BrickColor.new("Bright red")
+            detectPart.CastShadow = false
+            detectPart.CFrame = hrp.CFrame
+            detectPart.Parent = workspace
+        end)
+        -- Update posisi part tiap frame tanpa weld
+        task.spawn(function()
+            while detectOn and detectPart do
+                local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then detectPart.CFrame = hrp.CFrame end
+                task.wait(0.05)
+            end
+        end)
+        local detecting = false
+        local prevPos = nil
+        detectConn = RS.Heartbeat:Connect(function()
+            local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+            if not detecting then
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr ~= lp and plr.Character then
+                        local theirHRP = plr.Character:FindFirstChild("HumanoidRootPart")
+                        if theirHRP then
+                            local dist = (hrp.Position - theirHRP.Position).Magnitude
+                            if dist < detectRadius then
+                                -- Raycast cek dinding
+                                local params = RaycastParams.new()
+                                params.FilterDescendantsInstances = {lp.Character, plr.Character}
+                                params.FilterType = Enum.RaycastFilterType.Exclude
+                                local dir = theirHRP.Position - hrp.Position
+                                local ray = workspace:Raycast(hrp.Position, dir, params)
+                                -- Gak ada dinding = terdetect
+                                if not ray then
+                                    detecting = true
+                                    prevPos = hrp.Position
+                                    hrp.CFrame = CFrame.new(Vector3.new(510,3,600))
+                                    setStatus("⚠ "..plr.Name.." deket! Nunggu pergi...",255,180,0)
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            else
+                if not prevPos then detecting = false; return end
+                local stillThere = false
+                for _, plr in ipairs(Players:GetPlayers()) do
+                    if plr ~= lp and plr.Character then
+                        local closest = math.huge
+                        for _, part in ipairs(plr.Character:GetChildren()) do
+                            if part:IsA("BasePart") then
+                                local d = (prevPos - part.Position).Magnitude
+                                if d < closest then closest = d end
+                            end
+                        end
+                        if closest < detectRadius then
+                            stillThere = true
+                            setStatus("⚠ Masih ada "..plr.Name.."! Nunggu...",255,100,0)
+                            break
+                        end
+                    end
+                end
+                if not stillThere then
+                    local hrp2 = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+                    if hrp2 then hrp2.CFrame = CFrame.new(prevPos) end
+                    setStatus("✓ Aman! Balik ke posisi",0,220,80)
+                    prevPos = nil
+                    detecting = false
+                end
+            end
+        end)
+    else
+        detectBtn.Text = "🔍 Detect Player: OFF"
+        detectBtn.TextColor3 = C.purp
+        if detectConn then detectConn:Disconnect(); detectConn = nil end
+        if detectPart then pcall(function() detectPart:Destroy() end); detectPart = nil end
+    end
+end)
+
+-- ════════════════════════════════════════
+-- 3. NOCLIP
+-- ════════════════════════════════════════
+local noclipOn = false
+local noclipConn = nil
+local noclipCD = 0
+local noclipBtn = mkBtn(194, "👻 Noclip: OFF", Color3.fromRGB(10,20,50))
+noclipBtn.TextColor3 = C.cyan
+noclipBtn.MouseButton1Click:Connect(function()
+    noclipOn = not noclipOn
+    if noclipOn then
+        noclipBtn.Text = "👻 Noclip: ON"; noclipBtn.TextColor3 = C.green
+        noclipConn = RS.Heartbeat:Connect(function()
+            local ch = lp.Character; if not ch then return end
+            local hrp = ch:FindFirstChild("HumanoidRootPart"); if not hrp then return end
+            if tick() - noclipCD < 1 then return end
+            local moving = UIS:IsKeyDown(Enum.KeyCode.W) or UIS:IsKeyDown(Enum.KeyCode.A)
+                or UIS:IsKeyDown(Enum.KeyCode.S) or UIS:IsKeyDown(Enum.KeyCode.D)
+            if not moving then return end
+            local cam = workspace.CurrentCamera
+            local dir = Vector3.new(0,0,0)
+            if UIS:IsKeyDown(Enum.KeyCode.W) then dir = dir + Vector3.new(cam.CFrame.LookVector.X,0,cam.CFrame.LookVector.Z).Unit end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then dir = dir - Vector3.new(cam.CFrame.LookVector.X,0,cam.CFrame.LookVector.Z).Unit end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then dir = dir - Vector3.new(cam.CFrame.RightVector.X,0,cam.CFrame.RightVector.Z).Unit end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then dir = dir + Vector3.new(cam.CFrame.RightVector.X,0,cam.CFrame.RightVector.Z).Unit end
+            if dir.Magnitude == 0 then return end
+            local params = RaycastParams.new()
+            params.FilterDescendantsInstances = {ch}
+            params.FilterType = Enum.RaycastFilterType.Exclude
+            local head = ch:FindFirstChild("Head")
+            local headPos = head and head.Position or (hrp.Position + Vector3.new(0,1.5,0))
+            local result = workspace:Raycast(headPos, dir.Unit * 3, params)
+            if result and math.abs(result.Normal.Y) < 0.5 then
+                hrp.CFrame = CFrame.new(hrp.Position + dir.Unit * 5)
+                noclipCD = tick()
+            end
+        end)
+    else
+        noclipBtn.Text = "👻 Noclip: OFF"; noclipBtn.TextColor3 = C.cyan
+        if noclipConn then noclipConn:Disconnect(); noclipConn = nil end
+    end
+end)
+
+-- ════════════════════════════════════════
+-- 4. NAIK MOTOR
+-- ════════════════════════════════════════
+local motorBtn = mkBtn(226, "🏍 Naik Motor", Color3.fromRGB(10,20,60))
+motorBtn.TextColor3 = C.purp
+motorBtn.MouseButton1Click:Connect(function()
+    local ch = lp.Character
+    local hum = ch and ch:FindFirstChildWhichIsA("Humanoid")
+    local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+    for _, v in ipairs(workspace:GetDescendants()) do
+        if v:IsA("VehicleSeat") and v.Name == "DriveSeat" then
+            if v.Parent.Name:lower():find(lp.Name:lower()) then
+                hrp.CFrame = v.CFrame * CFrame.new(0,2,0)
+                task.wait(0.2); v:Sit(hum)
+                setStatus("✓ Naik motor!",0,180,255); return
+            end
+        end
+    end
+    setStatus("❌ Motor tidak ketemu!",255,80,80)
+end)
+
+-- ════════════════════════════════════════
+-- 5. TELEPORT
+-- ════════════════════════════════════════
+local TP_LIST = {
+    {"Job Box",              Vector3.new(-563,3,-66)},
+    {"Bank",                 Vector3.new(-45,3,-343)},
+    {"Gun Mid",              Vector3.new(180,3,-174)},
+    {"Gun Store Tier",       Vector3.new(1128,3,171)},
+    {"Gun Store Mid",        Vector3.new(-400,4,300)},
+    {"Marshmellow NPC",      Vector3.new(510,3,600)},
+    {"Marshmellow Aprtm 1",  Vector3.new(1140.3,9.9,450.7)},
+    {"Marshmellow Aprtm 2",  Vector3.new(1138,9,420)},
+    {"Marshmellow Aprtm 3",  Vector3.new(988,9,249)},
+    {"Marshmellow Aprtm 5",  Vector3.new(924,9,43)},
+    {"Marshmellow Aprtm 6",  Vector3.new(896,9,43)},
+    {"Marshmellow Aprtm 7",  Vector3.new(1175,3,-202)},
+    {"Marshmellow Aprtm 8",  Vector3.new(1218,3,-186)},
+    {"Marshmellow Aprtm 9",  Vector3.new(1174,3,-239)},
+    {"Marshmellow Aprtm 10", Vector3.new(1218,3,-224)},
+    {"ATM 1",  Vector3.new(-267,3,-212)},
+    {"ATM 2",  Vector3.new(-378,3,-362)},
+    {"ATM 3",  Vector3.new(-33,3,-301)},
+    {"ATM 4",  Vector3.new(359,3,-362)},
+    {"ATM 5",  Vector3.new(699,3,-242)},
+    {"ATM 6",  Vector3.new(872,3,-347)},
+    {"ATM 7",  Vector3.new(1094,3,178)},
+    {"ATM 8",  Vector3.new(895,3,144)},
+    {"ATM 9",  Vector3.new(715,3,410)},
+    {"ATM 10", Vector3.new(498,3,404)},
+    {"ATM 11", Vector3.new(-11,3,233)},
+}
+
+local tpOpen = false
+local tpBtn = mkBtn(258, "📍 Teleport ▼", Color3.fromRGB(10,20,60))
+tpBtn.TextColor3 = C.cyan
+
+local tpScroll = Instance.new("ScrollingFrame",win)
+tpScroll.Size = UDim2.new(1,-8,0,200); tpScroll.Position = UDim2.new(0,4,0,290)
+tpScroll.BackgroundTransparency = 1; tpScroll.BorderSizePixel = 0
+tpScroll.ScrollBarThickness = 3; tpScroll.ScrollBarImageColor3 = C.blue
+tpScroll.Visible = false; tpScroll.CanvasSize = UDim2.new(0,0,0,#TP_LIST*30)
+local tpLayout = Instance.new("UIListLayout",tpScroll)
+tpLayout.SortOrder = Enum.SortOrder.LayoutOrder; tpLayout.Padding = UDim.new(0,2)
+
+for i, t in ipairs(TP_LIST) do
+    local b = Instance.new("TextButton",tpScroll)
+    b.Size = UDim2.new(1,-4,0,26); b.LayoutOrder = i
+    b.BackgroundColor3 = C.bg2; b.BorderSizePixel = 0
+    b.Text = "  "..t[1]; b.TextColor3 = C.white
+    b.Font = Enum.Font.Code; b.TextSize = 11
+    b.TextXAlignment = Enum.TextXAlignment.Left
+    Instance.new("UICorner",b).CornerRadius = UDim.new(0,4)
+    b.MouseButton1Click:Connect(function()
+        local ch = lp.Character
+        local hum = ch and ch:FindFirstChildWhichIsA("Humanoid")
+        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+        local seat = hum and hum.SeatPart
+        if not seat then setStatus("❌ Naik motor dulu!",255,80,80); return end
+        local vehicle = seat:FindFirstAncestorWhichIsA("Model")
+        if vehicle then
+            pcall(function() vehicle:SetPrimaryPartCFrame(CFrame.new(t[2])) end)
+        else
+            hrp.CFrame = CFrame.new(t[2])
+        end
+        setStatus("TP: "..t[1],100,180,255)
+    end)
+end
+
+tpBtn.MouseButton1Click:Connect(function()
+    tpOpen = not tpOpen
+    tpScroll.Visible = tpOpen
+    win.Size = tpOpen and UDim2.new(0,210,0,496) or UDim2.new(0,210,0,320)
+    tpBtn.Text = tpOpen and "📍 Teleport ▲" or "📍 Teleport ▼"
+end)
